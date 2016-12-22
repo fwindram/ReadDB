@@ -1,0 +1,2 @@
+Testcases:
+- COMP recreate database when database does not exist.
