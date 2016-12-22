@@ -112,6 +112,8 @@ def isbn_lookup(isbn):
               'Language': ''
               }
     primary_author = ['']
+    if isbnlib.is_isbn10(isbn):
+        isbn = isbnlib.to_isbn13(isbn)
     if isbnlib.is_isbn13(isbn):     # if ISBN provided is ISBN-13
         isbn = isbnlib.EAN13(isbn)  # convert to validated, canonical ISBN-13 (remove hyphens etc.)
         b_meta = isbnlib.meta(isbn)          # look up metadata, return dict
@@ -131,7 +133,7 @@ def isbn_lookup(isbn):
 
 
 def main():     # Test main for quick manual DB writing.
-    booktest = isbn_lookup("978-1-84400-982-4")
+    booktest = isbn_lookup("0904727203")
     pp(booktest)
     # add_book(booktest)
     print("Done")
