@@ -26,10 +26,13 @@
 # TODO - ADD csv import function
 # TODO - ADD error logging
 # TODO - ADD tkinter interface
+# TODO - FIX title handling in author splitting code
 
 
 import sqlite3
 import isbnlib
+# import logging
+from beeprint import pp     # beeprint for easy class debugging
 
 
 class Book:
@@ -75,6 +78,29 @@ def create_db(recreate=False):
     connection.close()
 
 
+def add_book(book):
+    """Adds book to books.sqlite"""
+    connection = sqlite3.connect("books.sqlite")
+    cursor = connection.cursor()
+    if book:
+        try:
+            # Construct SQL command with book metadata
+            # (Eurgh, must be a nicer way to format this.)
+            add_cmd = """INSERT INTO books (bookid, title, surname, forename, isbn, publisher, year, language)
+            VALUES ({0}, "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}");""".format(book.bookid, book.title,
+                                                                                     book.author_sname,
+                                                                                     book.author_fname, book.isbn13,
+                                                                                     book.publisher, book.year,
+                                                                                     book.language)
+            cursor.execute(add_cmd)
+        except sqlite3.OperationalError:
+            print("Error adding book {0} to library".format(book.isbn13))
+    else:
+        print("No book object provided")
+    connection.commit()
+    connection.close()
+
+
 def isbn_lookup(isbn):
     """Looks up ISBN and spits out object with all necessary data for DB"""
     # b_meta test data
@@ -102,3 +128,13 @@ def isbn_lookup(isbn):
     )
 
     return book_inst
+
+
+def main():     # Test main for quick manual DB writing.
+    booktest = isbn_lookup("978-1-84400-982-4")
+    pp(booktest)
+    # add_book(booktest)
+    print("Done")
+
+# create_db(recreate=False)
+main()

@@ -1,3 +1,7 @@
 Testcases:
 - COMP recreate database when database does not exist.
 
+Test ISBNs:
+9780230769465
+9781844009824
+9781845336578
