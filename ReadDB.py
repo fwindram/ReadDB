@@ -7,10 +7,6 @@
 #
 # A Python3/SQL project for building and maintaining a book database.
 #
-# Dependencies:
-#   - sqlite3
-#   - isbnlib
-#
 # ===== TO DO LIST =====
 # TODO - If extant, open SQLite db
 # DONE - Else construct new DB on first run with required tables/columns
