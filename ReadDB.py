@@ -34,7 +34,7 @@
 import sqlite3
 import isbnlib
 # import logging
-# from beeprint import pp     # beeprint for easy class debugging
+from beeprint import pp     # beeprint for easy class debugging
 
 
 class Book:
@@ -81,6 +81,18 @@ def create_db(recreate=False):
     connection.close()
 
 
+def export_db():
+    connection = sqlite3.connect("books.sqlite")
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM books;")
+    book_dump = cursor.fetchall()
+    print("=== Dumping DB to console ===")
+    for book in book_dump:
+        print(book)
+    connection.close()
+    print("=== End of DB ===")
+
+
 def add_book(book):
     """Adds book to books.sqlite"""
     connection = sqlite3.connect("books.sqlite")
@@ -108,23 +120,23 @@ def add_book(book):
 def isbn_lookup(isbn):
     """Looks up ISBN and spits out object with all necessary data for DB"""
     # b_meta test data
-    b_meta = {'Year': '2015',
-              'ISBN-13': '9780230769465',
-              'Publisher': '',
-              'Authors': ['Peter F. Hamilton', 'Piper-Verlag', 'Wolfgang Thon'],
-              'Title': 'The abyss beyond dreams: a novel of the Commonwealth',
-              'Language': ''
+    b_meta = {'Year': 'ERROR',
+              'ISBN-13': 'ERROR',
+              'Publisher': 'ERROR',
+              'Authors': ['ERROR'],
+              'Title': 'ERROR',
+              'Language': 'ERROR'
               }
     primary_author = ['']
     isbn_error = False
-    if isbnlib.is_isbn10(isbn):
+    if isbnlib.is_isbn10(isbn):     # Convert to ISBN-13 if ISBN-10 was provided
         isbn = isbnlib.to_isbn13(isbn)
-    if isbnlib.is_isbn13(isbn):     # if ISBN provided is ISBN-13
-        isbn = isbnlib.EAN13(isbn)  # convert to validated, canonical ISBN-13 (remove hyphens etc.)
-        b_meta = isbnlib.meta(isbn)          # look up metadata, return dict
-        primary_author = b_meta["Authors"][0].split(" ")
+    if isbnlib.is_isbn13(isbn):     # If ISBN provided is ISBN-13
+        isbn = isbnlib.EAN13(isbn)  # Convert to validated, canonical ISBN-13 (remove hyphens etc.)
+        b_meta = isbnlib.meta(isbn)          # Look up metadata, return dict
+        primary_author = b_meta["Authors"][0].split(" ")    # Will need to be replaced with proper name comprehension
     else:
-        isbn_error = True       # Exit flag
+        isbn_error = True       # Error flag
 
     book_inst = Book(
         b_meta["Year"],
@@ -143,30 +155,31 @@ def booklist_parser(isbn_list):
     """Parses list of ISBNs and adds them to the database if valid."""
     iteration = 0
     errorcount = 0
-    print("=== Parsing ISBN list. ===")
+    print("=== Parsing ISBN list ===")
     for x in isbn_list:
         iteration += 1
         print("Processing ISBN {0} ({1}/{2})".format(x, iteration, len(isbn_list)))
-        entry_meta = isbn_lookup(str(x))
+        entry_meta = isbn_lookup(str(x))        # Look up ISBN
         if entry_meta[1]:
             print("!!! ISBN error in {0}!!!".format(x))
             errorcount += 1
         else:
-            entry_meta = entry_meta[0]
+            entry_meta = entry_meta[0]  # Remove error flag as we don't need it any more
             add_book(entry_meta)
             print("{0} added".format(x))
-    print("\n\n=== Book list parsed. ===\n"
+    print("\n\n=== Book list parsed ===\n"
           "Books added: {0}\n"
           "(Errors: {1})".format(len(isbn_list) - errorcount, errorcount))
 
 
 def main():     # Test main for quick manual DB writing.
-    # booktest = isbn_lookup("0904727203")[0]
-    # pp(booktest)
+    booktest = isbn_lookup("9781416521044")[0]
+    pp(booktest)
     # add_book(booktest)
-    # print("Book added.")
-    isbns = [9780230769465, "9781844009824", 978184533657, "0904727203"]    # Should produce 3 book entries + 1 Error
-    booklist_parser(isbns)
+    print("Book added.")
+    # isbns = [9780230769465, "9781844009824", 978184533657, "0904727203"]    # Should produce 3 book entries + 1 Error
+    # booklist_parser(isbns)
 
 # create_db(recreate=False)
+# export_db()
 main()
