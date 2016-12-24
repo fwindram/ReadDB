@@ -1,18 +1,19 @@
-# ReadDB v 0.0.2
+# ReadDB v 0.0.4
 # Francis Windram 2016
 # Python 3.4
 #
 # Created:  21/12/16
-# Modified: 22/12/16
+# Modified: 24/12/16
 #
 # A Python3/SQL project for building and maintaining a book database.
 #
 # ===== TO DO LIST =====
 # TODO - If extant, open SQLite db
 # DONE - Else construct new DB on first run with required tables/columns
-# TODO - ADD basic SQL logic for addition & deletion
+# DONE - ADD basic SQL logic for addition
+# TODO - ADD basic SQL logic for deletion
 # TODO - ADD SQL search functionality
-# Done - ADD auto-ISBN lookup for quick entry (using isbntools)
+# DONE - ADD auto-ISBN lookup for quick entry (using isbntools)
 #       - isbnlib.meta() returns dict in the following style:
 #     {
 #         'Year':'yyyy',
@@ -23,16 +24,17 @@
 #         'Language':'language'
 #     }
 # TODO - ADD isbn_lookup error handling
-# TODO - ADD csv import function
+# TODO - ADD csv import wrapper for list handler
+# DONE - ADD ISBN list import logic to support csv reading
 # TODO - ADD error logging
 # TODO - ADD tkinter interface
-# TODO - FIX title handling in author splitting code
+# TODO - FIX title handling in author splitting code - use nameparser
 
 
 import sqlite3
 import isbnlib
 # import logging
-from beeprint import pp     # beeprint for easy class debugging
+# from beeprint import pp     # beeprint for easy class debugging
 
 
 class Book:
@@ -49,6 +51,7 @@ class Book:
         self.language = language
 
 
+# === DB Functions ===
 def create_db(recreate=False):
     """Creates DB with correct tables (drops table if required)"""
     connection = sqlite3.connect("books.sqlite")
@@ -101,6 +104,7 @@ def add_book(book):
     connection.close()
 
 
+# === Non-DB Functions ===
 def isbn_lookup(isbn):
     """Looks up ISBN and spits out object with all necessary data for DB"""
     # b_meta test data
@@ -112,12 +116,15 @@ def isbn_lookup(isbn):
               'Language': ''
               }
     primary_author = ['']
+    isbn_error = False
     if isbnlib.is_isbn10(isbn):
         isbn = isbnlib.to_isbn13(isbn)
     if isbnlib.is_isbn13(isbn):     # if ISBN provided is ISBN-13
         isbn = isbnlib.EAN13(isbn)  # convert to validated, canonical ISBN-13 (remove hyphens etc.)
         b_meta = isbnlib.meta(isbn)          # look up metadata, return dict
         primary_author = b_meta["Authors"][0].split(" ")
+    else:
+        isbn_error = True       # Exit flag
 
     book_inst = Book(
         b_meta["Year"],
@@ -129,14 +136,37 @@ def isbn_lookup(isbn):
         b_meta["Language"],
     )
 
-    return book_inst
+    return book_inst, isbn_error
+
+
+def booklist_parser(isbn_list):
+    """Parses list of ISBNs and adds them to the database if valid."""
+    iteration = 0
+    errorcount = 0
+    print("=== Parsing ISBN list. ===")
+    for x in isbn_list:
+        iteration += 1
+        print("Processing ISBN {0} ({1}/{2})".format(x, iteration, len(isbn_list)))
+        entry_meta = isbn_lookup(str(x))
+        if entry_meta[1]:
+            print("!!! ISBN error in {0}!!!".format(x))
+            errorcount += 1
+        else:
+            entry_meta = entry_meta[0]
+            add_book(entry_meta)
+            print("{0} added".format(x))
+    print("\n\n=== Book list parsed. ===\n"
+          "Books added: {0}\n"
+          "(Errors: {1})".format(len(isbn_list) - errorcount, errorcount))
 
 
 def main():     # Test main for quick manual DB writing.
-    booktest = isbn_lookup("0904727203")
-    pp(booktest)
+    # booktest = isbn_lookup("0904727203")[0]
+    # pp(booktest)
     # add_book(booktest)
-    print("Done")
+    # print("Book added.")
+    isbns = [9780230769465, "9781844009824", 978184533657, "0904727203"]    # Should produce 3 book entries + 1 Error
+    booklist_parser(isbns)
 
 # create_db(recreate=False)
 main()
